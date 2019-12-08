@@ -2,6 +2,7 @@ import json
 import os
 import requests
 import sqlite3
+import time
 
 
 class api_2ch:
@@ -33,16 +34,17 @@ class api_2ch:
             thread = self.GetThread(board, t['num'])
             posts = thread['threads'][0]['posts']
             for p in posts:
-                for f in p['files']:
-                    if f['type'] == 10 or f['type'] == 6:
-                        self.CheckFile(f)
+                timestamp = round(time.time()) - 60 * 5
+                if p['timestamp'] < timestamp:
+                    for f in p['files']:
+                        if f['type'] == 10 or f['type'] == 6:
+                            self.CheckFile(f)
 
     def CheckFile(self, f):
         connect = sqlite3.connect(self.db)
         cursor = connect.cursor()
         cursor.execute('SELECT * FROM `files` WHERE md5=?', (f['md5'],))
-        res = cursor.fetchone()
-        if not res:
+        if not cursor.fetchone():
             self.Get_SaveFile(f['path'])
             self.Get_SaveFile(f['thumbnail'])
             t = (f['md5'], f['thumbnail'], f['path'], f['fullname'], f['name'])
@@ -54,13 +56,10 @@ class api_2ch:
         connect.close()
 
     def Get_SaveFile(self, file):
-        arr = file.split('/')
-        arr = arr[:-1]
-        dir = self.files_dir + "/".join(arr)
+        dir = self.files_dir + "/".join(file.split('/')[:-1])
         if not os.path.exists(dir):
             os.makedirs(dir)
-        url = self.url + file
-        r = self.Get(url)
+        r = self.Get(self.url + file)
         open(self.files_dir + file, 'wb').write(r.content)
 
 
