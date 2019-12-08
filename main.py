@@ -1,20 +1,47 @@
-
-def GetThread():
-
-
+import requests
+import json
 
 
-print("Hello world!")
-print("Привет мир!")
+class api_2ch:
+    def __init__(self):
+        self.url = 'https://2ch.hk/'
+        self.proxies = {
+            'http': 'http://51.75.164.92:3128',
+            'https': 'https://51.75.164.92:3128',
+        }
 
-Тред:
-2ch.hk/b/res/номертреда.json
+    def GetThreads(self, board):
+        url = f'{self.url}{board}/threads.json'
+        r = requests.get(url, proxies=self.proxies)
+        return json.loads(r.content)
 
-Все треды с сортировкой по последнему посту:
-2ch.hk/b/catalog.json
+    def GetThread(self, board, thread):
+        url = f'{self.url}{board}/res/{thread}.json'
+        r = requests.get(url, proxies=self.proxies)
+        return json.loads(r.content)
 
-Все треды с сортировкой по времени создания треда:
-2ch.hk/b/catalog_num.json
+    def GetWbm(self, board):
+        threads = self.GetThreads(board)
+        for t in threads['threads']:
+            thread = self.GetThread(board, t['num'])
+            posts = thread['threads'][0]['posts']
+            for p in posts:
+                for f in p['files']:
+                    if f['type'] == 10 or f['type'] == 6:
+                        str = ''
+                        str += f['md5']
+                        str += '\n'
+                        str += f['thumbnail']
+                        str += '\n'
+                        str += f['path']
+                        str += '\n'
+                        str += f['fullname']
+                        str += '\n'
+                        str += f['name']
+                        str += '\n'
+                        print(str)
+                        return
 
-Все треды с доски(облегченный вариант, с просмотрами и рейтингом для топа тредов):
-2ch.hk/b/threads.json
+
+api = api_2ch()
+api.GetWbm('b')
