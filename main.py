@@ -1,68 +1,49 @@
+import discord
 import json
 import os
 import requests
 import sqlite3
 import time
 
+client = discord.Client()
 
-class api_2ch:
-    def __init__(self):
-        self.files_dir = './files/'
-        self.db = './main.db'
-        self.url = 'https://2ch.hk/'
-        self.proxies = {
-            'http': 'http://51.75.164.92:3128',
-            'https': 'https://51.75.164.92:3128',
+
+@client.event
+async def on_ready():
+    async def timer():
+        print('Logged in as: ', client.user.name, ' BEGIN parse ', time.asctime())
+        PROXIES = {
+            'http': 'http://163.172.189.32:8811',
+            'https': 'https://163.172.189.32:8811',
         }
-
-    def Get(self, url):
-        return requests.get(url, proxies=self.proxies)
-
-    def GetThreads(self, board):
-        url = f'{self.url}{board}/threads.json'
-        r = self.Get(url)
-        return json.loads(r.content)
-
-    def GetThread(self, board, thread):
-        url = f'{self.url}{board}/res/{thread}.json'
-        r = self.Get(url)
-        return json.loads(r.content)
-
-    def GetWbm(self, board):
-        threads = self.GetThreads(board)
-        for t in threads['threads']:
-            thread = self.GetThread(board, t['num'])
-            posts = thread['threads'][0]['posts']
-            for p in posts:
-                timestamp = round(time.time()) - 60 * 5
-                if p['timestamp'] < timestamp:
-                    for f in p['files']:
-                        if f['type'] == 10 or f['type'] == 6:
-                            self.CheckFile(f)
-
-    def CheckFile(self, f):
-        connect = sqlite3.connect(self.db)
-        cursor = connect.cursor()
-        cursor.execute('SELECT * FROM `files` WHERE md5=?', (f['md5'],))
-        if not cursor.fetchone():
-            self.Get_SaveFile(f['path'])
-            self.Get_SaveFile(f['thumbnail'])
-            t = (f['md5'], f['thumbnail'], f['path'], f['fullname'], f['name'])
-            cursor.execute('INSERT INTO `files` VALUES (?, ?, ?, ?, ?)', t)
-            connect.commit()
-            print(f['path'])
-        else:
-            print('exist')
+        api_url = 'https://2ch.hk'
+        connect = sqlite3.connect('./main.db')
+        r = requests.get(f'{api_url}/b/threads.json', proxies=PROXIES)
+        for thread in json.loads(r.content)['threads']:
+            r = requests.get(f'{api_url}/b/res/{thread["num"]}.json', proxies=PROXIES)
+            for post in json.loads(r.content)['threads'][0]['posts']:
+                if post['timestamp'] < (round(time.time()) - 300):
+                    for file in post['files']:
+                        if file['type'] == 10 or file['type'] == 6:
+                            if file['size'] <= 7999:
+                                cursor = connect.cursor()
+                                cursor.execute('SELECT * FROM `files` WHERE md5=?', (file['md5'],))
+                                if not cursor.fetchone():
+                                    r = requests.get(f'{api_url}' + file['path'], proxies=PROXIES)
+                                    name_save = './files/' + file['name']
+                                    open(name_save, 'wb').write(r.content)
+                                    channel = client.get_channel(653758320896770050)
+                                    await channel.send(file=discord.File(name_save))
+                                    t = (file['md5'], file['thumbnail'], file['path'], file['fullname'], file['name'])
+                                    cursor.execute('INSERT INTO `files` VALUES (?, ?, ?, ?, ?)', t)
+                                    connect.commit()
+                                    os.remove(name_save)
         connect.close()
+        print('END parse ' + time.asctime())
+        await timer()
 
-    def Get_SaveFile(self, file):
-        dir = self.files_dir + "/".join(file.split('/')[:-1])
-        if not os.path.exists(dir):
-            os.makedirs(dir)
-        r = self.Get(self.url + file)
-        open(self.files_dir + file, 'wb').write(r.content)
+    await timer()
 
 
 if __name__ == "__main__":
-    api = api_2ch()
-    api.GetWbm('b')
+    client.run('123123', bot=False)
