@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <title>
+        {% block title %}
+        {% endblock %}
+    </title>
+    <style>
+    * {
+        padding: 0px;
+        margin: 0px;
+    }
+    html {
+        padding: 0px;
+        margin: 0px;
+    }
+    body {
+        padding: 0px;
+        margin: 0px;
+        background: #EEE;
+    }
+    .file {
+        display: inline-block;
+        cursor: pointer;
+    }
+    .thumbnail {
+    }
+    #player {
+        position: fixed;
+        margin: auto;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        border: 1px solid black;
+        width: 1024px;
+        height: 768px;
+        background: lightgray;
+    }
+    .hidden {
+        display: none;
+    }
+    </style>
+    <script>
+        CURID = false
+        function thumbnailclick(el)
+        {
+            let path = el.getAttribute('path');
+            let player = document.getElementById('player');
+            let html5video = document.getElementById('html5video');
+            html5video.src = path;
+            player.classList.remove('hidden');
+            CURID = el.id;
+        }
+        function removePlayer(event)
+        {
+            if(event.target.tagName != 'IMG')
+            {
+                document.getElementById('html5video').src = '';
+                document.getElementById('player').classList.add('hidden');
+            }
+        }
+        function keyup(e)
+        {
+            if(e.key =='ArrowLeft')
+            {
+                let id = CURID.split('_').pop();
+                id--;
+                let needid = `index_${id}`;
+                let el = document.getElementById(needid)
+                let path = el.getAttribute('path');
+                let player = document.getElementById('player');
+                let html5video = document.getElementById('html5video');
+                html5video.src = path;
+                player.classList.remove('hidden');
+                CURID = el.id;
+                el.scrollIntoView({block: "center", behavior: "smooth"});
+            }
+            if(e.key =='ArrowRight')
+            {
+                let id = CURID.split('_').pop();
+                id++;
+                let needid = `index_${id}`;
+                let el = document.getElementById(needid)
+                let path = el.getAttribute('path');
+                let player = document.getElementById('player');
+                let html5video = document.getElementById('html5video');
+                html5video.src = path;
+                player.classList.remove('hidden');
+                CURID = el.id;
+                el.scrollIntoView({block: "center", behavior: "smooth"});
+            }
+            if(e.key =='Escape')
+            {
+                document.getElementById('html5video').src = '';
+                document.getElementById('player').classList.add('hidden');
+            }
+        }
+    </script>
+</head>
+<body onclick="removePlayer(event)" onkeyup="keyup(event)">
+
+<div class="container">
+    <h1>
+        {% block content_title %}
+
+        {% endblock %}
+    </h1>
+    {% block content %}
+
+    {% endblock %}
+</div>
+
+</body>
+</html>

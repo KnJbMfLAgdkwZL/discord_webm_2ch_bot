@@ -46,4 +46,4 @@ async def on_ready():
 
 
 if __name__ == "__main__":
-    client.run('123123', bot=False)
+    client.run('1234567890', bot=False)
